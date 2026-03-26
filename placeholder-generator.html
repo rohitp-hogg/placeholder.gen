@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Placeholder Image Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --border: #2a2a2f;
+    --accent: #7fff6e;
+    --accent2: #6edbff;
+    --text: #e8e8ec;
+    --muted: #6b6b78;
+    --radius: 10px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    gap: 32px;
+  }
+
+  header {
+    text-align: center;
+  }
+
+  header h1 {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  header p {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-top: 6px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field.full { grid-column: 1 / -1; }
+
+  label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  input[type="number"], input[type="text"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.95rem;
+    padding: 10px 14px;
+    width: 100%;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+
+  input[type="number"]:focus, input[type="text"]:focus {
+    border-color: var(--accent);
+  }
+
+  .color-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  input[type="color"] {
+    -webkit-appearance: none;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px;
+    background: var(--bg);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+  input[type="color"]::-webkit-color-swatch { border-radius: 4px; border: none; }
+
+  .swatch-grid {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .swatch {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+
+  .swatch:hover { transform: scale(1.2); }
+  .swatch.active { border-color: var(--accent); }
+
+  .options-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 6px;
+  }
+
+  .toggle-btn {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .toggle-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(127, 255, 110, 0.06);
+  }
+
+  .preview-wrap {
+    margin-top: 20px;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    min-height: 100px;
+    background: repeating-conic-gradient(#1a1a1e 0% 25%, #131316 0% 50%) 0 0 / 20px 20px;
+  }
+
+  #preview-canvas {
+    max-width: 100%;
+    border-radius: 4px;
+    display: block;
+  }
+
+  .info-row {
+    display: flex;
+    gap: 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .info-row span { color: var(--accent2); }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0e0e10;
+  }
+
+  .btn-primary:hover { background: #9cffa0; transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .url-box {
+    margin-top: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    word-break: break-all;
+    display: none;
+  }
+
+  .url-box span { color: var(--accent2); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>placeholder.gen</h1>
+  <p>Generate custom placeholder images instantly</p>
+</header>
+
+<div class="card">
+  <div class="grid">
+    <div class="field">
+      <label>Width (px)</label>
+      <input type="number" id="width" value="1800" min="1" max="4000">
+    </div>
+    <div class="field">
+      <label>Height (px)</label>
+      <input type="number" id="height" value="562" min="1" max="4000">
+    </div>
+
+    <div class="field full">
+      <label>Background Color</label>
+      <div class="color-row">
+        <input type="color" id="bg-color" value="#d4d4d4">
+        <input type="text" id="bg-hex" value="#d4d4d4" style="flex:1">
+      </div>
+      <div class="swatch-grid" id="bg-swatches"></div>
+    </div>
+
+    <div class="field full">
+      <label>Text Color</label>
+      <div class="color-row">
+        <input type="color" id="text-color" value="#999999">
+        <input type="text" id="text-hex" value="#999999" style="flex:1">
+      </div>
+      <div class="swatch-grid" id="text-swatches"></div>
+    </div>
+
+    <div class="field full">
+      <label>Custom Label (optional)</label>
+      <input type="text" id="custom-label" placeholder="Leave blank for dimensions">
+    </div>
+
+    <div class="field full">
+      <label>Options</label>
+      <div class="options-row">
+        <button class="toggle-btn active" id="show-dims-btn" onclick="toggleOption('show-dims')">Show Dimensions</button>
+        <button class="toggle-btn active" id="show-cross-btn" onclick="toggleOption('show-cross')">Show Cross</button>
+        <button class="toggle-btn" id="rounded-btn" onclick="toggleOption('rounded')">Rounded</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="preview-wrap">
+    <canvas id="preview-canvas"></canvas>
+    <div class="info-row">
+      <div>Size: <span id="info-size">—</span></div>
+      <div>Ratio: <span id="info-ratio">—</span></div>
+    </div>
+  </div>
+
+  <div class="url-box" id="url-box">
+    Encoded: <span id="url-text"></span>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="downloadPNG()">↓ Download PNG</button>
+    <button class="btn btn-secondary" onclick="copyDataURL()">Copy Data URL</button>
+  </div>
+</div>
+
+<script>
+  const BG_SWATCHES = ['#d4d4d4','#e8e8e8','#f5f5f5','#c0c0c0','#1a1a2e','#16213e','#0f3460','#e94560','#2d6a4f','#ffd166','#ef476f','#118ab2'];
+  const TEXT_SWATCHES = ['#999999','#666666','#333333','#ffffff','#aaaaaa','#ffcc00','#ff6b6b','#4ecdc4','#c7f464','#ff8b94','#a8e6cf','#dcedc1'];
+
+  let opts = { 'show-dims': true, 'show-cross': true, 'rounded': false };
+
+  function buildSwatches(containerId, swatches, inputId, hexId) {
+    const wrap = document.getElementById(containerId);
+    swatches.forEach(color => {
+      const s = document.createElement('div');
+      s.className = 'swatch';
+      s.style.background = color;
+      s.title = color;
+      s.onclick = () => setColor(inputId, hexId, color, containerId);
+      wrap.appendChild(s);
+    });
+  }
+
+  function setColor(inputId, hexId, color, swatchContainerId) {
+    document.getElementById(inputId).value = color;
+    document.getElementById(hexId).value = color;
+    document.querySelectorAll(`#${swatchContainerId} .swatch`).forEach(s =>
+      s.classList.toggle('active', s.style.background === hexToRgb(color) || s.title === color)
+    );
+    render();
+  }
+
+  function hexToRgb(hex) {
+    const r = document.createElement('div');
+    r.style.color = hex;
+    document.body.appendChild(r);
+    const rgb = getComputedStyle(r).color;
+    document.body.removeChild(r);
+    return rgb;
+  }
+
+  document.getElementById('bg-color').addEventListener('input', e => {
+    document.getElementById('bg-hex').value = e.target.value;
+    render();
+  });
+  document.getElementById('text-color').addEventListener('input', e => {
+    document.getElementById('text-hex').value = e.target.value;
+    render();
+  });
+  document.getElementById('bg-hex').addEventListener('input', e => {
+    if (/^#[0-9a-f]{6}$/i.test(e.target.value)) {
+      document.getElementById('bg-color').value = e.target.value;
+      render();
+    }
+  });
+  document.getElementById('text-hex').addEventListener('input', e => {
+    if (/^#[0-9a-f]{6}$/i.test(e.target.value)) {
+      document.getElementById('text-color').value = e.target.value;
+      render();
+    }
+  });
+
+  ['width','height','custom-label'].forEach(id =>
+    document.getElementById(id).addEventListener('input', render)
+  );
+
+  function toggleOption(key) {
+    opts[key] = !opts[key];
+    document.getElementById(key + '-btn').classList.toggle('active', opts[key]);
+    render();
+  }
+
+  function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
+
+  function render() {
+    const W = parseInt(document.getElementById('width').value) || 800;
+    const H = parseInt(document.getElementById('height').value) || 400;
+    const bg = document.getElementById('bg-color').value;
+    const tc = document.getElementById('text-color').value;
+    const label = document.getElementById('custom-label').value.trim();
+    const canvas = document.getElementById('preview-canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Scale for preview (max 480px wide)
+    const maxW = 480;
+    const scale = W > maxW ? maxW / W : 1;
+    canvas.width = Math.round(W * scale);
+    canvas.height = Math.round(H * scale);
+
+    // Background
+    if (opts['rounded']) {
+      const r = Math.min(canvas.width, canvas.height) * 0.06;
+      ctx.beginPath();
+      ctx.roundRect(0, 0, canvas.width, canvas.height, r);
+      ctx.fillStyle = bg;
+      ctx.fill();
+      ctx.clip();
+    } else {
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Cross lines
+    if (opts['show-cross']) {
+      ctx.strokeStyle = tc;
+      ctx.globalAlpha = 0.25;
+      ctx.lineWidth = Math.max(1, scale);
+      ctx.beginPath();
+      ctx.moveTo(0, 0); ctx.lineTo(canvas.width, canvas.height);
+      ctx.moveTo(canvas.width, 0); ctx.lineTo(0, canvas.height);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // Text
+    if (opts['show-dims'] || label) {
+      const text = label || `${W} × ${H}`;
+      const fontSize = Math.max(12, Math.min(canvas.width / 8, canvas.height / 3, 60));
+      ctx.fillStyle = tc;
+      ctx.font = `bold ${fontSize}px 'Space Mono', monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    }
+
+    // Info
+    const g = gcd(W, H);
+    document.getElementById('info-size').textContent = `${W} × ${H}px`;
+    document.getElementById('info-ratio').textContent = `${W/g}:${H/g}`;
+  }
+
+  function getFullCanvas() {
+    const W = parseInt(document.getElementById('width').value) || 800;
+    const H = parseInt(document.getElementById('height').value) || 400;
+    const bg = document.getElementById('bg-color').value;
+    const tc = document.getElementById('text-color').value;
+    const label = document.getElementById('custom-label').value.trim();
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    if (opts['rounded']) {
+      const r = Math.min(W, H) * 0.06;
+      ctx.beginPath();
+      ctx.roundRect(0, 0, W, H, r);
+      ctx.fillStyle = bg;
+      ctx.fill();
+      ctx.clip();
+    } else {
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    if (opts['show-cross']) {
+      ctx.strokeStyle = tc;
+      ctx.globalAlpha = 0.25;
+      ctx.lineWidth = Math.max(1, W / 600);
+      ctx.beginPath();
+      ctx.moveTo(0, 0); ctx.lineTo(W, H);
+      ctx.moveTo(W, 0); ctx.lineTo(0, H);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    if (opts['show-dims'] || label) {
+      const text = label || `${W} × ${H}`;
+      const fontSize = Math.max(12, Math.min(W / 8, H / 3, 120));
+      ctx.fillStyle = tc;
+      ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, W / 2, H / 2);
+    }
+
+    return canvas;
+  }
+
+  function downloadPNG() {
+    const canvas = getFullCanvas();
+    const W = canvas.width, H = canvas.height;
+    const a = document.createElement('a');
+    a.download = `placeholder-${W}x${H}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  }
+
+  function copyDataURL() {
+    const canvas = getFullCanvas();
+    const url = canvas.toDataURL('image/png');
+    navigator.clipboard.writeText(url).then(() => {
+      const box = document.getElementById('url-box');
+      document.getElementById('url-text').textContent = url.substring(0, 80) + '…';
+      box.style.display = 'block';
+      setTimeout(() => box.style.display = 'none', 4000);
+    });
+  }
+
+  buildSwatches('bg-swatches', BG_SWATCHES, 'bg-color', 'bg-hex');
+  buildSwatches('text-swatches', TEXT_SWATCHES, 'text-color', 'text-hex');
+  render();
+</script>
+</body>
+</html>
